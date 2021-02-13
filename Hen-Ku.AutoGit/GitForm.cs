@@ -75,7 +75,7 @@ namespace Hen_Ku.AutoGit
                     foreach (var item in ProjectInfo)
                         try
                         {
-                            Git.SelectProject(item.Key, item.Value);
+                            Git.SelectProject(item.Value);
                             Git.UpdateBranch();
                         }
                         catch (Exception ex) { ConsoleLog(" *** 專案錯誤：" + ex.Message); }
@@ -99,7 +99,10 @@ namespace Hen_Ku.AutoGit
                 {
                     List<string> ProjectPath = folderBrowserDialog1.SelectedPath.Split('\\').ToList();
                     string name = ProjectPath[ProjectPath.Count - 1];
-                    ProjectInfo[name] = folderBrowserDialog1.SelectedPath;
+                    string path = folderBrowserDialog1.SelectedPath;
+                    while (ProjectInfo.ContainsKey(name) && ProjectInfo[name] != path)
+                        name += "+";
+                    ProjectInfo[name] = path;
                     SaveProject();
                     UpdateList();
                     comboBoxProject.SelectedItem = name;
@@ -112,7 +115,7 @@ namespace Hen_Ku.AutoGit
                 buttonDel.Enabled = true;
                 buttonSync.Enabled = true;
                 var name = comboBoxProject.SelectedItem.ToString();
-                Git.SelectProject(name, ProjectInfo[name]);
+                Git.SelectProject(ProjectInfo[name]);
             }
         }
 

@@ -79,7 +79,7 @@ namespace Hen_Ku.AutoGit
         }
 
         public Action<List<string>, string> updateBranch = null;
-        public void SelectProject(string name, string path)
+        public void SelectProject(string path)
         {
             CMD.Send($"cd {path}");
             CMD.Send($"git branch -a & echo #end");
