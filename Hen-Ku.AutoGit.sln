@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30804.86
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hen-Ku.AutoGit", "Hen-Ku.AutoGit\Hen-Ku.AutoGit.csproj", "{B193A0FF-6EAE-48EA-8070-96A7B6688F31}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B193A0FF-6EAE-48EA-8070-96A7B6688F31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B193A0FF-6EAE-48EA-8070-96A7B6688F31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B193A0FF-6EAE-48EA-8070-96A7B6688F31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B193A0FF-6EAE-48EA-8070-96A7B6688F31}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AD1C5DA2-FD68-486A-B2A7-44BFBBB1A9F5}
+	EndGlobalSection
+EndGlobal
