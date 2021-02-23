@@ -12,16 +12,15 @@ namespace Hen_Ku.AutoGit
     public partial class GitForm : Form
     {
         Dictionary<string, string> ProjectPath;
-        Dictionary<string, string> ProjectInfo;
+        Dictionary<string, string> ProjectInfo = new Dictionary<string, string>();
         void SaveProject()
         {
             Microsoft.Win32.Registry.SetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Hen-Ku.DC\AutoGit", "ProjectInfo", JsonConvert.SerializeObject(ProjectPath));
         }
 
         Git Git;
-        delegate void SetTextCallback(string text);//用來更新UIText 的Callback
-        MqttClient client;//MqttClient
-        string clientId;//連線時所用的ClientID
+        MqttClient client;
+        string clientId;
         public GitForm()
         {
             InitializeComponent();
@@ -31,15 +30,15 @@ namespace Hen_Ku.AutoGit
             Git = new Git();
             Git.consoleLog = ConsoleLog;
             Git.updateBranch = updateBranch;
-            foreach (var item in ProjectInfo)
+            foreach (var item in ProjectPath)
             {
                 Git.SelectProject(item.Value);
-                Console.WriteLine(Git.GetUrl());
+                ProjectInfo[item.Key] = Git.GetUrl();
             }
             UpdateList();
-            Task.Run(Timer);
+            //Task.Run(Timer);
             client = new MqttClient("zxcv.lol");//MQTTServer在本機
-            client.MqttMsgPublishReceived += client_MqttMsgPublishReceived;//當接收到訊息時處理函式
+            client.MqttMsgPublishReceived += GitEvent;//當接收到訊息時處理函式
             clientId = Guid.NewGuid().ToString();//取得唯一碼
             client.Connect(clientId);//建立連線
             client.Subscribe(new string[] { "AutoGit" }, new byte[] { 0 });
@@ -79,26 +78,26 @@ namespace Hen_Ku.AutoGit
             comboBoxProject_SelectedIndexChanged(this, null);
         }
 
-        void Timer()
-        {
-            var Git = new Git();
-            Git.consoleLog = ConsoleLog;
-            while (true)
-            {
-                Task.Delay((60 - DateTime.Now.Second) * 1000).Wait();
-                try
-                {
-                    foreach (var item in ProjectPath)
-                        try
-                        {
-                            Git.SelectProject(item.Value);
-                            Git.UpdateBranch();
-                        }
-                        catch (Exception ex) { ConsoleLog(" *** 專案錯誤：" + ex.Message); }
-                }
-                catch (Exception ex) { ConsoleLog(" *** 循環錯誤：" + ex.Message); }
-            }
-        }
+        //void Timer()
+        //{
+        //    var Git = new Git();
+        //    Git.consoleLog = ConsoleLog;
+        //    while (true)
+        //    {
+        //        Task.Delay((60 - DateTime.Now.Second) * 1000).Wait();
+        //        try
+        //        {
+        //            foreach (var item in ProjectPath)
+        //                try
+        //                {
+        //                    Git.SelectProject(item.Value);
+        //                    Git.UpdateBranch();
+        //                }
+        //                catch (Exception ex) { ConsoleLog(" *** 專案錯誤：" + ex.Message); }
+        //        }
+        //        catch (Exception ex) { ConsoleLog(" *** 循環錯誤：" + ex.Message); }
+        //    }
+        //}
         #region 選擇專案
         private void comboBoxProject_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -132,6 +131,8 @@ namespace Hen_Ku.AutoGit
                 buttonSync.Enabled = true;
                 var name = comboBoxProject.SelectedItem.ToString();
                 Git.SelectProject(ProjectPath[name]);
+                Git.GetBranch();
+                ProjectInfo[name] = Git.GetUrl();
             }
         }
 
@@ -188,10 +189,21 @@ namespace Hen_Ku.AutoGit
         {
             Visible = !Visible;
         }
-        void client_MqttMsgPublishReceived(object sender, MqttMsgPublishEventArgs e)
-        {
-            string ReceivedMessage = System.Text.Encoding.UTF8.GetString(e.Message);
 
+        void GitEvent(object sender, MqttMsgPublishEventArgs e)
+        {
+            string CloneUrl = System.Text.Encoding.UTF8.GetString(e.Message);
+            var list = ProjectInfo.Where(x => x.Value == CloneUrl || x.Value == CloneUrl + ".git").ToList();
+            if (list.Count == 0) return;
+            var Git = new Git();
+            Git.consoleLog = ConsoleLog;
+            foreach (var item in list)
+                try
+                {
+                    Git.SelectProject(ProjectPath[item.Key]);
+                    Git.UpdateBranch();
+                }
+                catch (Exception ex) { ConsoleLog(" *** 更新發生錯誤：" + ex.Message); }
         }
 
     }
