@@ -4,29 +4,45 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using uPLibrary.Networking.M2Mqtt;
+using uPLibrary.Networking.M2Mqtt.Messages;
 
 namespace Hen_Ku.AutoGit
 {
     public partial class GitForm : Form
     {
+        Dictionary<string, string> ProjectPath;
         Dictionary<string, string> ProjectInfo;
         void SaveProject()
         {
-            Microsoft.Win32.Registry.SetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Hen-Ku.DC\AutoGit", "ProjectInfo", JsonConvert.SerializeObject(ProjectInfo));
+            Microsoft.Win32.Registry.SetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Hen-Ku.DC\AutoGit", "ProjectInfo", JsonConvert.SerializeObject(ProjectPath));
         }
 
         Git Git;
+        delegate void SetTextCallback(string text);//用來更新UIText 的Callback
+        MqttClient client;//MqttClient
+        string clientId;//連線時所用的ClientID
         public GitForm()
         {
             InitializeComponent();
             var Temp = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Hen-Ku.DC\AutoGit", "ProjectInfo", null);
-            if (Temp == null) ProjectInfo = new Dictionary<string, string>();
-            else ProjectInfo = JsonConvert.DeserializeObject<Dictionary<string, string>>(Temp.ToString());
+            if (Temp == null) ProjectPath = new Dictionary<string, string>();
+            else ProjectPath = JsonConvert.DeserializeObject<Dictionary<string, string>>(Temp.ToString());
             Git = new Git();
             Git.consoleLog = ConsoleLog;
             Git.updateBranch = updateBranch;
+            foreach (var item in ProjectInfo)
+            {
+                Git.SelectProject(item.Value);
+                Console.WriteLine(Git.GetUrl());
+            }
             UpdateList();
             Task.Run(Timer);
+            client = new MqttClient("zxcv.lol");//MQTTServer在本機
+            client.MqttMsgPublishReceived += client_MqttMsgPublishReceived;//當接收到訊息時處理函式
+            clientId = Guid.NewGuid().ToString();//取得唯一碼
+            client.Connect(clientId);//建立連線
+            client.Subscribe(new string[] { "AutoGit" }, new byte[] { 0 });
         }
         List<string> Branch;
         void updateBranch(List<string> branch, string select)
@@ -56,7 +72,7 @@ namespace Hen_Ku.AutoGit
 
         void UpdateList()
         {
-            var list = ProjectInfo.Keys.ToList();
+            var list = ProjectPath.Keys.ToList();
             list.Add("瀏覽其他專案");
             comboBoxProject.Items.Clear();
             comboBoxProject.Items.AddRange(list.ToArray());
@@ -72,7 +88,7 @@ namespace Hen_Ku.AutoGit
                 Task.Delay((60 - DateTime.Now.Second) * 1000).Wait();
                 try
                 {
-                    foreach (var item in ProjectInfo)
+                    foreach (var item in ProjectPath)
                         try
                         {
                             Git.SelectProject(item.Value);
@@ -100,9 +116,9 @@ namespace Hen_Ku.AutoGit
                     List<string> ProjectPath = folderBrowserDialog1.SelectedPath.Split('\\').ToList();
                     string name = ProjectPath[ProjectPath.Count - 1];
                     string path = folderBrowserDialog1.SelectedPath;
-                    while (ProjectInfo.ContainsKey(name) && ProjectInfo[name] != path)
+                    while (this.ProjectPath.ContainsKey(name) && this.ProjectPath[name] != path)
                         name += "+";
-                    ProjectInfo[name] = path;
+                    this.ProjectPath[name] = path;
                     SaveProject();
                     UpdateList();
                     comboBoxProject.SelectedItem = name;
@@ -115,7 +131,7 @@ namespace Hen_Ku.AutoGit
                 buttonDel.Enabled = true;
                 buttonSync.Enabled = true;
                 var name = comboBoxProject.SelectedItem.ToString();
-                Git.SelectProject(ProjectInfo[name]);
+                Git.SelectProject(ProjectPath[name]);
             }
         }
 
@@ -135,7 +151,7 @@ namespace Hen_Ku.AutoGit
                 MessageBox.Show($"您確定要停止自動更新專案「{comboBoxProject.SelectedItem}」",
                 "刪除專案", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
-                ProjectInfo.Remove(comboBoxProject.SelectedItem.ToString());
+                ProjectPath.Remove(comboBoxProject.SelectedItem.ToString());
                 SaveProject();
                 UpdateList();
             }
@@ -172,5 +188,11 @@ namespace Hen_Ku.AutoGit
         {
             Visible = !Visible;
         }
+        void client_MqttMsgPublishReceived(object sender, MqttMsgPublishEventArgs e)
+        {
+            string ReceivedMessage = System.Text.Encoding.UTF8.GetString(e.Message);
+
+        }
+
     }
 }

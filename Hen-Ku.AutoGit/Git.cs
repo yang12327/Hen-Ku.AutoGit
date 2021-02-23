@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Hen_Ku.AutoGit
 {
     class Git
     {
         CommandLine CMD;
+        bool busy = false;
         public Git()
         {
             CMD = new CommandLine("cmd.exe", "/k");
@@ -31,6 +33,7 @@ namespace Hen_Ku.AutoGit
             //ConsoleLog = Content;
             if (Content == "#end")
             {
+                busy = false;
                 if (LastCommand.Contains("git branch"))
                 {
                     var Branch = new List<string>();
@@ -81,16 +84,29 @@ namespace Hen_Ku.AutoGit
         public Action<List<string>, string> updateBranch = null;
         public void SelectProject(string path)
         {
+            busy = true;
             CMD.Send($"cd {path}");
             CMD.Send($"git branch -a & echo #end");
+            while (busy) Task.Delay(1).Wait();
         }
         public void SelectBranch(string name)
         {
+            busy = true;
             CMD.Send($"git checkout {name} & echo #end");
+            while (busy) Task.Delay(1).Wait();
         }
         public void UpdateBranch()
         {
+            busy = true;
             CMD.Send($"git pull origin & echo #end");
+            while (busy) Task.Delay(1).Wait();
+        }
+        public string GetUrl()
+        {
+            busy = true;
+            CMD.Send($" git config --get remote.origin.url");
+            while (busy) Task.Delay(1).Wait();
+            return string.Join("", TempContent).Trim();
         }
     }
 }
