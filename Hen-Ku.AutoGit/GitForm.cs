@@ -37,7 +37,7 @@ namespace Hen_Ku.AutoGit
             }
             UpdateList();
             //Task.Run(Timer);
-            client = new MqttClient("zxcv.lol");//MQTTServer在本機
+            client = new MqttClient("zxcv.cx");//MQTTServer在本機
             client.MqttMsgPublishReceived += GitEvent;//當接收到訊息時處理函式
             clientId = Guid.NewGuid().ToString();//取得唯一碼
             client.Connect(clientId);//建立連線
