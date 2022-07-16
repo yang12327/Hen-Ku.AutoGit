@@ -11,22 +11,24 @@ namespace Hen_Ku.AutoGit
 {
     public partial class GitForm : Form
     {
-        Dictionary<string, string> ProjectPath;
+        Dictionary<string, string> ProjectPath = JsonConvert.DeserializeObject<Dictionary<string, string>>(Properties.Settings.Default.ProjectPath);
         Dictionary<string, string> ProjectInfo = new Dictionary<string, string>();
         void SaveProject()
         {
-            Microsoft.Win32.Registry.SetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Hen-Ku.DC\AutoGit", "ProjectInfo", JsonConvert.SerializeObject(ProjectPath));
+            Properties.Settings.Default.ProjectPath = JsonConvert.SerializeObject(ProjectPath);
+            Properties.Settings.Default.Save();
+            //Microsoft.Win32.Registry.SetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Hen-Ku.DC\AutoGit", "ProjectInfo", );
         }
 
         Git Git;
         MqttClient client;
         string clientId;
-        public GitForm()
+        public GitForm(bool hide)
         {
             InitializeComponent();
-            var Temp = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Hen-Ku.DC\AutoGit", "ProjectInfo", null);
-            if (Temp == null) ProjectPath = new Dictionary<string, string>();
-            else ProjectPath = JsonConvert.DeserializeObject<Dictionary<string, string>>(Temp.ToString());
+            //var Temp = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Hen-Ku.DC\AutoGit", "ProjectInfo", null);
+            //if (Temp == null) ProjectPath = new Dictionary<string, string>();
+            //else ProjectPath = ;
             Git = new Git();
             Git.consoleLog = ConsoleLog;
             Git.updateBranch = updateBranch;
@@ -42,7 +44,13 @@ namespace Hen_Ku.AutoGit
             clientId = Guid.NewGuid().ToString();//取得唯一碼
             client.Connect(clientId);//建立連線
             client.Subscribe(new string[] { "AutoGit" }, new byte[] { 0 });
+            WindowState = hide ? FormWindowState.Minimized : FormWindowState.Normal;
         }
+        private void GitForm_Shown(object sender, EventArgs e)
+        {
+            Visible = WindowState != FormWindowState.Minimized;
+        }
+
         List<string> Branch;
         void updateBranch(List<string> branch, string select)
         {
@@ -171,6 +179,8 @@ namespace Hen_Ku.AutoGit
         private void 還原視窗ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Show();
+            WindowState = FormWindowState.Normal;
+            Focus();
         }
 
         private void 關閉程式ToolStripMenuItem_Click(object sender, EventArgs e)
@@ -188,6 +198,11 @@ namespace Hen_Ku.AutoGit
         private void notifyIcon1_Click(object sender, EventArgs e)
         {
             Visible = !Visible;
+            if (Visible)
+            {
+                WindowState = FormWindowState.Normal;
+                Focus();
+            }
         }
 
         void GitEvent(object sender, MqttMsgPublishEventArgs e)
@@ -205,6 +220,5 @@ namespace Hen_Ku.AutoGit
                 }
                 catch (Exception ex) { ConsoleLog(" *** 更新發生錯誤：" + ex.Message); }
         }
-
     }
 }

@@ -110,6 +110,7 @@ namespace Hen_Ku.AutoGit
             // 
             // folderBrowserDialog1
             // 
+            this.folderBrowserDialog1.RootFolder = System.Environment.SpecialFolder.MyComputer;
             this.folderBrowserDialog1.SelectedPath = "C:\\Users\\yang1\\Documents\\Visual Studio Project";
             // 
             // notifyIcon1
@@ -122,6 +123,7 @@ namespace Hen_Ku.AutoGit
             // 
             // contextMenuStrip1
             // 
+            this.contextMenuStrip1.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.還原視窗ToolStripMenuItem,
             this.關閉程式ToolStripMenuItem});
@@ -162,6 +164,7 @@ namespace Hen_Ku.AutoGit
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Git自動更新";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.GitForm_FormClosing);
+            this.Shown += new System.EventHandler(this.GitForm_Shown);
             this.contextMenuStrip1.ResumeLayout(false);
             this.ResumeLayout(false);
 

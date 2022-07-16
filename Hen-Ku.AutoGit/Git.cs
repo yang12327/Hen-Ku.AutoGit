@@ -99,7 +99,8 @@ namespace Hen_Ku.AutoGit
             busy = true;
             CMD.Send($"git config --get remote.origin.url & echo #end");
             while (busy) Task.Delay(1).Wait();
-            return string.Join("", TempContent).Trim();
+            var result = string.Join("", TempContent).Trim();
+            return System.Text.RegularExpressions.Regex.Replace(result, @"//.+@", "//");
         }
         public void GetBranch()
         {
