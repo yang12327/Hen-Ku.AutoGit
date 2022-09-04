@@ -1,11 +1,11 @@
-﻿using Newtonsoft.Json;
+﻿using MQTTnet;
+using MQTTnet.Client;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using uPLibrary.Networking.M2Mqtt;
-using uPLibrary.Networking.M2Mqtt.Messages;
 
 namespace Hen_Ku.AutoGit
 {
@@ -21,8 +21,11 @@ namespace Hen_Ku.AutoGit
         }
 
         Git Git;
-        MqttClient client;
-        string clientId;
+        MqttClient client = (MqttClient)new MqttFactory().CreateMqttClient();
+        MqttClientOptions clientOption = new MqttClientOptionsBuilder()
+              .WithTcpServer("zxcv.cx")
+              .WithClientId(Guid.NewGuid().ToString())
+              .Build();
         public GitForm(bool hide)
         {
             InitializeComponent();
@@ -39,11 +42,10 @@ namespace Hen_Ku.AutoGit
             }
             UpdateList();
             //Task.Run(Timer);
-            client = new MqttClient("zxcv.cx");//MQTTServer在本機
-            client.MqttMsgPublishReceived += GitEvent;//當接收到訊息時處理函式
-            clientId = Guid.NewGuid().ToString();//取得唯一碼
-            client.Connect(clientId);//建立連線
-            client.Subscribe(new string[] { "AutoGit" }, new byte[] { 0 });
+            client.ConnectAsync(clientOption);
+            client.ConnectedAsync += Connected;
+            client.DisconnectedAsync += Disconnected;
+            client.ApplicationMessageReceivedAsync += GitEvent;
             WindowState = hide ? FormWindowState.Minimized : FormWindowState.Normal;
         }
         private void GitForm_Shown(object sender, EventArgs e)
@@ -205,11 +207,24 @@ namespace Hen_Ku.AutoGit
             }
         }
 
-        void GitEvent(object sender, MqttMsgPublishEventArgs e)
+        async Task Connected(MqttClientConnectedEventArgs e)
         {
-            string CloneUrl = System.Text.Encoding.UTF8.GetString(e.Message);
+            ConsoleLog(" *** 連線成功 ***");
+            await client.SubscribeAsync("AutoGit");
+        }
+
+        async Task Disconnected(MqttClientDisconnectedEventArgs e = null)
+        {
+            ConsoleLog(" *** 連線中斷… ***");
+            await Task.Delay(10000);
+            await client.ConnectAsync(clientOption);
+        }
+
+        Task GitEvent(MqttApplicationMessageReceivedEventArgs e)
+        {
+            string CloneUrl = System.Text.Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
             var list = ProjectInfo.Where(x => x.Value == CloneUrl || x.Value == CloneUrl + ".git").ToList();
-            if (list.Count == 0) return;
+            if (list.Count == 0) return Task.CompletedTask;
             var Git = new Git();
             Git.consoleLog = ConsoleLog;
             foreach (var item in list)
@@ -219,6 +234,7 @@ namespace Hen_Ku.AutoGit
                     Git.UpdateBranch();
                 }
                 catch (Exception ex) { ConsoleLog(" *** 更新發生錯誤：" + ex.Message); }
+            return Task.CompletedTask;
         }
     }
 }
