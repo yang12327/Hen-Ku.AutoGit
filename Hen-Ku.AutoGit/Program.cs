@@ -36,7 +36,7 @@ namespace Hen_Ku.AutoGit
             //判斷Dlls集合中是否有已載入的同名程式集
             if (Dlls.TryGetValue(assName, out ass) && ass != null)
             {
-                Dlls[assName] = null;//如果有則置空並返回
+                //Dlls[assName] = null;//如果有則置空並返回
                 return ass;
             }
             else
