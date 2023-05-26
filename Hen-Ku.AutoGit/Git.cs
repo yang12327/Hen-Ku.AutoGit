@@ -90,7 +90,7 @@ namespace Hen_Ku.AutoGit
         public void SelectProject(string path)
         {
             busy = true;
-            CMD.Send($"cd {path} & echo #end");
+            CMD.Send($"cd /d {path} & echo #end");
             while (busy) Task.Delay(1).Wait();
             ConsoleLog = $"切換到{path}";
         }
