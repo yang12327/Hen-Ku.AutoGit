@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Hen_Ku.AutoGit
 {
     class Git
     {
         CommandLine CMD;
+        public bool busy = false;
         public Git()
         {
             CMD = new CommandLine("cmd.exe", "/k");
@@ -25,32 +27,38 @@ namespace Hen_Ku.AutoGit
             {
                 TempContent.Clear();
                 LastCommand = Content.Substring(Content.IndexOf(">") + 1);
-                ConsoleLog = $">{LastCommand}";
+                //ConsoleLog = $">{LastCommand}";
                 return;
             }
             //ConsoleLog = Content;
             if (Content == "#end")
             {
-                if (LastCommand.Contains("git branch"))
+                try
                 {
-                    var Branch = new List<string>();
-                    string select = null;
-                    foreach (var item in TempContent)
+
+                    if (LastCommand.Contains("git branch"))
                     {
-                        var S = item.Substring(2).Split('/');
-                        var name = S[S.Length - 1];
-                        if (item.Substring(0, 1) == "*") select = name;
-                        if (!Branch.Contains(name)) Branch.Add(name);
+                        var Branch = new List<string>();
+                        string select = null;
+                        foreach (var item in TempContent)
+                        {
+                            var S = item.Substring(2).Split('/');
+                            var name = S[S.Length - 1];
+                            if (item.Substring(0, 1) == "*") select = name;
+                            if (!Branch.Contains(name)) Branch.Add(name);
+                        }
+                        if (updateBranch != null)
+                            updateBranch(Branch, select);
                     }
-                    if (updateBranch != null)
-                        updateBranch(Branch, select);
+                    else if (LastCommand.Contains("git pull origin"))
+                    {
+                        var Error = TempContent.FindAll(x => x.Contains("error:") || x.Contains("fatal:"));
+                        if (Error.Count() > 0) ConsoleLog = $"更新失敗 {Error[0]}";
+                        else ConsoleLog = "更新成功";
+                    }
                 }
-                else if (LastCommand.Contains("git pull origin"))
-                {
-                    var Error = TempContent.FindAll(x => x.Contains("error:") || x.Contains("fatal:"));
-                    if (Error.Count() > 0) ConsoleLog = $"更新失敗 {Error[0]}";
-                    else ConsoleLog = "更新成功";
-                }
+                finally { busy = false; }
+
                 return;
             }
             else
@@ -81,16 +89,36 @@ namespace Hen_Ku.AutoGit
         public Action<List<string>, string> updateBranch = null;
         public void SelectProject(string path)
         {
-            CMD.Send($"cd {path}");
+            busy = true;
+            CMD.Send($"cd /d {path} & echo #end");
+            while (busy) Task.Delay(1).Wait();
+            ConsoleLog = $"切換到{path}";
+        }
+        public string GetUrl()
+        {
+            busy = true;
+            CMD.Send($"git config --get remote.origin.url & echo #end");
+            while (busy) Task.Delay(1).Wait();
+            var result = string.Join("", TempContent).Trim();
+            return System.Text.RegularExpressions.Regex.Replace(result, @"//.+@", "//");
+        }
+        public void GetBranch()
+        {
+            busy = true;
             CMD.Send($"git branch -a & echo #end");
+            while (busy) Task.Delay(1).Wait();
         }
         public void SelectBranch(string name)
         {
+            busy = true;
             CMD.Send($"git checkout {name} & echo #end");
+            while (busy) Task.Delay(1).Wait();
         }
         public void UpdateBranch()
         {
+            busy = true;
             CMD.Send($"git pull origin & echo #end");
+            while (busy) Task.Delay(1).Wait();
         }
     }
 }
