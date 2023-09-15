@@ -32,8 +32,20 @@ namespace Hen_Ku.AutoGit
                 ProjectInfo[item.Key] = Git.GetUrl();
             }
             UpdateList();
-            Connect();
-            WindowState = hide ? FormWindowState.Minimized : FormWindowState.Normal;
+            Task.Run(() => Connect());
+            if (hide)
+            {
+                WindowState = FormWindowState.Minimized;
+                Task.Run(() => UpdateAll());
+            }
+            Task.Run(() =>
+            {
+                while (true)
+                {
+                    Task.Delay(12 * 60 * 60 * 1000).Wait();
+                    UpdateAll();
+                }
+            });
         }
         private void GitForm_Shown(object sender, EventArgs e)
         {
@@ -79,10 +91,10 @@ namespace Hen_Ku.AutoGit
         private void comboBoxProject_SelectedIndexChanged(object sender, EventArgs e)
         {
             comboBoxBranch.Items.Clear();
+            buttonSync.Text = comboBoxProject.SelectedIndex == -1 ? "全部同步" : "立即同步";
             if (comboBoxProject.SelectedIndex == -1)
             {
                 buttonDel.Enabled = false;
-                buttonSync.Enabled = false;
                 return;
             }
             else if (comboBoxProject.SelectedItem.ToString() == "瀏覽其他專案")
@@ -105,7 +117,6 @@ namespace Hen_Ku.AutoGit
             else
             {
                 buttonDel.Enabled = true;
-                buttonSync.Enabled = true;
                 var name = comboBoxProject.SelectedItem.ToString();
                 Git.SelectProject(ProjectPath[name]);
                 Git.GetBranch();
@@ -141,6 +152,8 @@ namespace Hen_Ku.AutoGit
         {
             if (comboBoxBranch.SelectedIndex >= 0)
                 Git.UpdateBranch();
+            else
+                UpdateAll();
         }
 
         #endregion
@@ -177,10 +190,17 @@ namespace Hen_Ku.AutoGit
 
         void Connect()
         {
-            signalR = new SignalR("https://api.zxcv.cx", "signalR", Disconnected);
-            signalR.HubProxy.On<string, string>("Group", GitEvent);
-            signalR.Send("Subscribe", "AutoGit");
-            ConsoleLog(" *** 連線成功 ***");
+            try
+            {
+                signalR = new SignalR("https://api.zxcv.cx", "signalR", Disconnected);
+                signalR.HubProxy.On<string, string>("Group", GitEvent);
+                signalR.Send("Subscribe", "AutoGit");
+                ConsoleLog(" *** 連線成功 ***");
+            }
+            catch
+            {
+                Disconnected();
+            }
         }
 
         void Disconnected()
@@ -193,6 +213,21 @@ namespace Hen_Ku.AutoGit
         {
             var list = ProjectInfo.Where(x => x.Value == CloneUrl || x.Value == CloneUrl + ".git").ToList();
             if (list.Count == 0) return;
+            var Git = new Git();
+            Git.consoleLog = ConsoleLog;
+            foreach (var item in list)
+                try
+                {
+                    Git.SelectProject(ProjectPath[item.Key]);
+                    Git.UpdateBranch();
+                }
+                catch (Exception ex) { ConsoleLog(" *** 更新發生錯誤：" + ex.Message); }
+        }
+
+        void UpdateAll()
+        {
+            ConsoleLog(" *** 正在更新所有專案");
+            var list = ProjectInfo.ToList();
             var Git = new Git();
             Git.consoleLog = ConsoleLog;
             foreach (var item in list)
