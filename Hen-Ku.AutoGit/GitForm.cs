@@ -197,10 +197,7 @@ namespace Hen_Ku.AutoGit
                 signalR.Send("Subscribe", "AutoGit");
                 ConsoleLog(" *** 連線成功 ***");
             }
-            catch
-            {
-                Disconnected();
-            }
+            catch { }
         }
 
         void Disconnected()
